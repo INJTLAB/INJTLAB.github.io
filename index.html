@@ -63,7 +63,7 @@
   #intro .cap.in { opacity: 1; transform: translateX(0); }
   #stem { opacity: 0; animation: stem-in .32s ease-out forwards; }
   @keyframes stem-in { to { opacity: 1; } }
-  #dropShape { opacity: 0; }
+  #dropShape, #dotShape { opacity: 0; }
   @media (prefers-reduced-motion: reduce) {
     #intro { display: none; }
     #stem { animation: none; opacity: 1; }
@@ -97,7 +97,8 @@
       <g transform="translate(-176,-166)">
         <path id="stem" fill="#fff" d="M542,414 L547,415 L547,657 L548,658 L548,666 L551,674 L556,679 L562,682 L564,682 L565,683 L570,683 L571,684 L585,684 L586,685 L586,699 L447,699 L447,685 L448,684 L462,684 L463,683 L471,682 L477,679 L481,675 L485,665 L485,460 L481,450 L475,445 L467,442 L462,442 L461,441 L451,441 L450,440 L448,440 L448,427 L451,427 L452,426 L463,426 L464,425 L474,425 L475,424 L483,424 L484,423 L491,423 L492,422 L499,422 L500,421 L513,420 L514,419 L519,419 L520,418 L525,418 L526,417 L530,417 L531,416 L541,415 Z"/>
         <g id="dot">
-          <path id="dropShape" fill="#fff" d="M512,225 C535,285 555,300 555,333.5 C555,357.25 535.75,376.5 512,376.5 C488.25,376.5 469,357.25 469,333.5 C469,300 489,285 512,225 Z"/>
+          <path id="dropShape" fill="#fff" d="M512,225 C528,268 555,292 555,333.5 C555,357.25 535.75,376.5 512,376.5 C488.25,376.5 469,357.25 469,333.5 C469,292 496,268 512,225 Z"/>
+          <path id="dotShape" fill="#fff" d="M503,291 L520,291 L521,292 L527,293 L535,297 L538,300 L539,300 L548,310 L552,318 L553,324 L554,325 L554,331 L555,332 L554,342 L553,343 L552,349 L548,357 L538,368 L527,374 L521,375 L520,376 L503,376 L502,375 L496,374 L488,370 L485,367 L484,367 L475,357 L472,351 L472,349 L470,345 L470,342 L469,341 L469,326 L470,325 L470,321 L472,318 L472,316 L474,312 L478,306 L488,297 L496,293 L502,292 Z"/>
         </g>
         <circle id="ring" class="ring" cx="512" cy="502" r="327.5" pathLength="100" stroke-dasharray="100" stroke-dashoffset="100"/>
       </g>
@@ -126,6 +127,7 @@
   const ring = document.getElementById('ring');
   const dot = document.getElementById('dot');
   const dropShape = document.getElementById('dropShape');
+  const dotShape = document.getElementById('dotShape');
   const sound = document.getElementById('dropSound');
   const capsIntro = [...document.querySelectorAll('#caps .cap')];
   const capsHero = [...document.querySelectorAll('#heroMark .cap')];
@@ -134,21 +136,6 @@
   const START_X = 728;
   const GAP = 10;
   const BADGE_W = 672;
-  const DROP = [[512,225],[535,285],[555,300],[555,333.5],[555,357.25],[535.75,376.5],[512,376.5],[488.25,376.5],[469,357.25],[469,333.5],[469,300],[489,285],[512,225]];
-  const CIRCLE = [[512,290.5],[535.75,290.5],[555,309.75],[555,333.5],[555,357.25],[535.75,376.5],[512,376.5],[488.25,376.5],[469,357.25],[469,333.5],[469,309.75],[488.25,290.5],[512,290.5]];
-  const pathFrom = pts => {
-    let d = `M${pts[0][0]},${pts[0][1]}`;
-    for (let i = 1; i < pts.length; i += 3) {
-      d += ` C${pts[i][0]},${pts[i][1]} ${pts[i + 1][0]},${pts[i + 1][1]} ${pts[i + 2][0]},${pts[i + 2][1]}`;
-    }
-    return d + ' Z';
-  };
-  const DROP_D = pathFrom(DROP);
-  const CIRCLE_D = pathFrom(CIRCLE);
-  const morphPath = t => pathFrom(DROP.map((p, i) => [
-    p[0] + (CIRCLE[i][0] - p[0]) * t,
-    p[1] + (CIRCLE[i][1] - p[1]) * t
-  ]));
 
   async function layout() {
     try {
@@ -188,7 +175,7 @@
     window.addEventListener('load', () => { loaded = true; }, { once: true });
 
     const T = {
-      dotStart: 320, dotFall: 400, bounce: 160, morph: 280,
+      dotStart: 320, dotFall: 400, bounce: 160,
       ringDur: 900, ringClose: 280,
       letterGap: 65, recenter: 650,
       hold: 400
@@ -202,25 +189,27 @@
 
       if (dt < T.dotStart) {
         dropShape.style.opacity = '0';
-        dropShape.setAttribute('d', DROP_D);
+        dotShape.style.opacity = '0';
         dot.setAttribute('transform', 'translate(0 -260)');
       } else if (dt < T.dotStart + T.dotFall) {
         const p = (dt - T.dotStart) / T.dotFall;
         dropShape.style.opacity = String(Math.min(1, (dt - T.dotStart) / 80));
+        dotShape.style.opacity = '0';
         dot.setAttribute('transform', `translate(0 ${(-260 * (1 - p * p)).toFixed(2)})`);
       } else {
         if (impactAt === null) {
           impactAt = now;
           playSound();
         }
-        const m = Math.min(1, (now - impactAt) / T.morph);
-        dropShape.style.opacity = '1';
-        dropShape.setAttribute('d', m < 1 ? morphPath(easeInOutCubic(m)) : CIRCLE_D);
+        const f = Math.min(1, (now - impactAt) / 120);
+        dropShape.style.opacity = String(1 - f);
+        dotShape.style.opacity = String(Math.min(1, f * 1.5));
         const b = Math.min(1, (now - impactAt) / T.bounce);
-        const sy = 1 - .06 * Math.sin(Math.PI * b);
-        const sx = 1 + .03 * Math.sin(Math.PI * b);
+        const ty = -14 * Math.sin(Math.PI * b);
+        const sy = 1 - .10 * Math.sin(Math.PI * b);
+        const sx = 1 + .06 * Math.sin(Math.PI * b);
         dot.setAttribute('transform', b < 1
-          ? `translate(512 333.5) scale(${sx.toFixed(3)} ${sy.toFixed(3)}) translate(-512 -333.5)`
+          ? `translate(0 ${ty.toFixed(2)}) translate(512 333.5) scale(${sx.toFixed(3)} ${sy.toFixed(3)}) translate(-512 -333.5)`
           : 'translate(0 0)');
       }
 
