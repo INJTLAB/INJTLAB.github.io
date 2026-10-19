@@ -5,12 +5,110 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>INJTLAB</title>
 <style>
-html, body { height: 100%; margin: 0; }
-body { display: grid; place-items: center; background: #0b0d10; color: #eaecef; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
-h1 { margin: 0; font-size: clamp(28px, 8vw, 72px); letter-spacing: .06em; }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    display: grid;
+    place-items: center;
+    background: #000;
+    color: #fff;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    overflow: hidden;
+  }
+  .wordmark {
+    margin: 0;
+    font-size: clamp(28px, 7vw, 64px);
+    font-weight: 700;
+    letter-spacing: .14em;
+  }
+  #intro {
+    position: fixed;
+    inset: 0;
+    z-index: 10;
+    display: grid;
+    place-items: center;
+    background: #000;
+    transition: opacity .55s ease, visibility .55s ease;
+  }
+  #intro.done { opacity: 0; visibility: hidden; }
+  .mark {
+    width: clamp(240px, 40vmin, 380px);
+    height: auto;
+    display: block;
+  }
+  #letter { opacity: 0; animation: letter-in .5s ease-out forwards; }
+  @keyframes letter-in { from { opacity: 0; } to { opacity: 1; } }
+  .ring {
+    fill: none;
+    stroke: #fff;
+    stroke-width: 17;
+    stroke-linecap: round;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    #letter { animation: none; opacity: 1; }
+    #intro { transition: none; }
+  }
 </style>
 </head>
 <body>
-<h1>INJTLAB</h1>
+<main>
+  <h1 class="wordmark">INJTLAB</h1>
+</main>
+
+<div id="intro" aria-hidden="true">
+  <svg class="mark" viewBox="176 166 672 672" role="img" aria-label="INJTLAB">
+    <g id="letter" fill="#fff">
+      <path d="M542,414 L547,415 L547,657 L548,658 L548,666 L551,674 L556,679 L562,682 L564,682 L565,683 L570,683 L571,684 L585,684 L586,685 L586,699 L447,699 L447,685 L448,684 L462,684 L463,683 L471,682 L477,679 L481,675 L485,665 L485,460 L481,450 L475,445 L467,442 L462,442 L461,441 L451,441 L450,440 L448,440 L448,427 L451,427 L452,426 L463,426 L464,425 L474,425 L475,424 L483,424 L484,423 L491,423 L492,422 L499,422 L500,421 L513,420 L514,419 L519,419 L520,418 L525,418 L526,417 L530,417 L531,416 L541,415 Z"/>
+      <path d="M503,291 L520,291 L521,292 L527,293 L535,297 L538,300 L539,300 L548,310 L552,318 L553,324 L554,325 L554,331 L555,332 L554,342 L553,343 L552,349 L548,357 L538,368 L527,374 L521,375 L520,376 L503,376 L502,375 L496,374 L488,370 L485,367 L484,367 L475,357 L472,351 L472,349 L470,345 L470,342 L469,341 L469,326 L470,325 L470,321 L472,318 L472,316 L474,312 L478,306 L488,297 L496,293 L502,292 Z"/>
+    </g>
+    <circle id="ring" class="ring" cx="512" cy="502" r="327.5" pathLength="100" stroke-dasharray="100" stroke-dashoffset="100" transform="rotate(-90 512 502)"/>
+  </svg>
+</div>
+
+<noscript><style>#intro { display: none; }</style></noscript>
+
+<script>
+(() => {
+  const intro = document.getElementById('intro');
+  const ring = document.getElementById('ring');
+  if (!intro || !ring) return;
+
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    intro.remove();
+    return;
+  }
+
+  let loaded = document.readyState === 'complete';
+  window.addEventListener('load', () => { loaded = true; }, { once: true });
+
+  const DRAW = 1200;
+  const CLOSE = 320;
+  const start = performance.now();
+  let closingAt = null;
+
+  function frame(now) {
+    if (closingAt === null) {
+      const t = Math.min(1, (now - start) / DRAW);
+      const eased = 1 - Math.pow(1 - t, 3);
+      ring.style.strokeDashoffset = String(100 - 90 * eased);
+      if (t === 1 && loaded) closingAt = now;
+      requestAnimationFrame(frame);
+      return;
+    }
+    const t = Math.min(1, (now - closingAt) / CLOSE);
+    const eased = 1 - Math.pow(1 - t, 3);
+    ring.style.strokeDashoffset = String(10 * (1 - eased));
+    if (t < 1) {
+      requestAnimationFrame(frame);
+      return;
+    }
+    ring.style.strokeDashoffset = '0';
+    window.setTimeout(() => intro.classList.add('done'), 220);
+    window.setTimeout(() => intro.remove(), 900);
+  }
+
+  requestAnimationFrame(frame);
+})();
+</script>
 </body>
 </html>
