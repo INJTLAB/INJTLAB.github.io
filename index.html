@@ -27,6 +27,18 @@
     display: block;
     overflow: visible;
   }
+  #heroMark {
+    position: fixed;
+    top: 24px;
+    left: 24px;
+    width: auto;
+    height: 32px;
+    visibility: hidden;
+    opacity: 0;
+  }
+  @media (max-width: 640px) {
+    #heroMark { top: 16px; left: 16px; height: 28px; }
+  }
   .cap {
     font-family: "Manrope", system-ui, sans-serif;
     font-weight: 300;
@@ -54,19 +66,21 @@
     background: #000;
     transition: opacity .55s ease, visibility .55s ease;
   }
-  #intro.done { opacity: 0; visibility: hidden; }
   #intro .cap {
     opacity: 0;
     transform: translateX(-60px);
     transition: opacity .38s cubic-bezier(.22,.61,.36,1), transform .38s cubic-bezier(.22,.61,.36,1);
   }
   #intro .cap.in { opacity: 1; transform: translateX(0); }
+  #intro.move { background: transparent; pointer-events: none; }
+  #introMark { will-change: transform; }
   #stem { opacity: 0; animation: stem-in .32s ease-out forwards; }
   @keyframes stem-in { to { opacity: 1; } }
   #dot { opacity: 0; }
   @media (prefers-reduced-motion: reduce) {
     #intro { display: none; }
     #stem { animation: none; opacity: 1; }
+    #heroMark { visibility: visible; opacity: 1; }
   }
 </style>
 </head>
@@ -158,6 +172,11 @@
     const shift0 = (width - BADGE_W) / 2;
     introLockup.setAttribute('transform', `translate(${shift0} 0)`);
 
+    const brandH = heroMark.getBoundingClientRect().height;
+    heroMark.style.width = `${(brandH * width) / 672}px`;
+    const brandRect = heroMark.getBoundingClientRect();
+    const target = { x: brandRect.left, y: brandRect.top, h: brandH };
+
     let loaded = document.readyState === 'complete';
     window.addEventListener('load', () => { loaded = true; }, { once: true });
 
@@ -165,11 +184,16 @@
       dotStart: 320, dotFall: 400, bounce: 160,
       ringDur: 900, ringClose: 280,
       letterGap: 65, recenter: 650,
-      hold: 400
+      hold: 400, shrink: 700
     };
 
     const t0 = performance.now();
     let impactAt = null, closeStart = null, lettersStart = null, doneAt = null;
+
+    function finishMove() {
+      intro.style.background = 'transparent';
+      intro.style.pointerEvents = 'none';
+    }
 
     function frame(now) {
       const dt = now - t0;
@@ -219,13 +243,20 @@
         const lettersEnd = (capsIntro.length - 1) * T.letterGap + 380;
         if (doneAt === null && since >= lettersEnd + T.hold) {
           doneAt = now;
-          intro.classList.add('done');
+          const from = introMark.getBoundingClientRect();
+          const dx = target.x - from.left;
+          const dy = target.y - from.top;
+          const scale = target.h / from.height;
+          introMark.style.transformOrigin = '0 0';
+          introMark.style.transition = `transform ${T.shrink}ms cubic-bezier(.45, 0, .2, 1)`;
+          introMark.getBoundingClientRect();
+          introMark.style.transform = `translate(${dx.toFixed(2)}px, ${dy.toFixed(2)}px) scale(${scale.toFixed(4)})`;
+          intro.style.transition = `background-color ${T.shrink}ms cubic-bezier(.45, 0, .2, 1)`;
+          intro.classList.add('move');
+          introMark.addEventListener('transitionend', finishMove, { once: true });
+          setTimeout(finishMove, T.shrink + 200);
+          return;
         }
-      }
-
-      if (doneAt !== null && now - doneAt >= 900) {
-        intro.remove();
-        return;
       }
       requestAnimationFrame(frame);
     }
@@ -233,9 +264,18 @@
   }
 
   layout().then(width => {
-    if (reduced) { intro.remove(); return; }
+    if (reduced) {
+      heroMark.style.visibility = 'visible';
+      heroMark.style.opacity = '1';
+      intro.remove();
+      return;
+    }
     start(width);
-  }).catch(() => intro.remove());
+  }).catch(() => {
+    heroMark.style.visibility = 'visible';
+    heroMark.style.opacity = '1';
+    intro.remove();
+  });
 })();
 </script>
 </body>
