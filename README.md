@@ -1,1 +1,1 @@
-# INJTLAB.github.io
+# INTJLAB.github.io
